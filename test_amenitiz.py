@@ -71,8 +71,13 @@ class TestCashRegister(unittest.TestCase):
         )
 
     def test_cash_register_error_unknown_item(self):
-        with self.assertRaises(UnknownItemsInBasketError):
-            self.cr1.calculate_total_price(basket_str="OR1, PN1")
+        with self.assertRaises(
+            UnknownItemsInBasketError,
+            msg=str(
+                UnknownItemsInBasketError(['OR1', 'PN1'])
+            )
+        ):
+            self.cr1.calculate_total_price(basket_str="OR1,PN1")
         
 
 if __name__ == '__main__':
