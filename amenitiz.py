@@ -1,4 +1,5 @@
 import math
+from operator import itemgetter
 import unittest
 
 class Product:
@@ -12,6 +13,10 @@ class Rule:
         self.product = product
         self.function = func
 
+class UnknownItemsInBasketError(Exception):
+    def __init__(self, unknown_items_list):
+        self.unknown_items = unknown_items_list
+        super().__init__(f"Unknown items in basket: {self.unknown_items}")
 class CashRegister:
     def __init__(self, products, rules=[]):
         self.products = products
@@ -34,6 +39,7 @@ class CashRegister:
             basket_list = []
         else:
             basket_list = basket_str.split(",")
+            self.validate_basket(basket=basket_list)
 
         for item in basket_list:
             basket_dict.setdefault(item, 0)
@@ -50,6 +56,15 @@ class CashRegister:
             total += self.product_price_list[item].price * num_items
 
         return round(total, 2)
+
+    def validate_basket(self, basket):
+        unknown_items = [
+            item
+            for item in basket
+            if item not in self.product_price_list 
+        ]
+        if len(unknown_items) > 0:
+            raise UnknownItemsInBasketError(unknown_items)
 
 
 if __name__ == '__main__':
@@ -89,12 +104,12 @@ if __name__ == '__main__':
         ),
     ]
 
-    mcb = CashRegister(products=product_list, rules=rule_list)
-    print(mcb.product_price_list)
+    cr1 = CashRegister(products=product_list, rules=rule_list)
+    print(cr1.product_price_list)
     
     basket_list_str = input("Enter a list of products in basket: ")
     
-    basket_price = mcb.calculate_total_price(basket=basket_list_str)
+    basket_price = cr1.calculate_total_price(basket=basket_list_str)
     print("Total basket price (in Euros): ", basket_price)
 
 
