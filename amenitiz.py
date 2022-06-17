@@ -34,6 +34,14 @@ class UnknownItemsInBasketError(Exception):
         self.unknown_items = unknown_items_list
         super().__init__(f"Unknown items in basket: {self.unknown_items}")
 
+class UnknownModelInstanceError(Exception):
+    def __init__(self, model, code):
+        super().__init__(f"Unknown {model} instance with code: {code}")
+
+class CannotAddModelInstanceWithExistingCodesError(Exception):
+    def __init__(self, model, codes):
+        super().__init__(f"{model} instances with the following codes already exist: {codes}")
+
 
 class CashRegister:
     def __init__(self, products, rules=[]):
@@ -86,20 +94,22 @@ class CashRegister:
     def get_product(self, code):
         product = self.products_dict.get(code, None)
 
+        if product is None:
+            raise UnknownModelInstanceError(model=Product, code=code)
+
         return product
     
     def add_products(self, products):
-
-        product_codes_to_update = []
+        existing_product_codes = []
 
         for product in products:
             if product.code not in self.products_dict:
                 self.products_dict[product.code] = product
             else:
-                product_codes_to_update.append(product.code)
+                existing_product_codes.append(product.code)
 
-        if len(product_codes_to_update) > 0:
-            print("The products with the following codes already exist: %s", str(product_codes_to_update))
+        if len(existing_product_codes) > 0:
+            raise CannotAddModelInstanceWithExistingCodesError(model=Product, codes=existing_product_codes)
 
         return
 
@@ -159,12 +169,14 @@ if __name__ == '__main__':
 
     rule_list = [
         Rule(
+            code="GR1:Buy1Get1",
             product=product_gr1, 
             func=lambda basket_dict, product : math.ceil(
                 basket_dict[product.code]/2
             ) * product.price
         ),
         Rule(
+            code="SR1:3+RedPrice",
             product=product_sr1, 
             func=lambda basket_dict, product : (
                 basket_dict[product.code] * 4.50
@@ -173,6 +185,7 @@ if __name__ == '__main__':
             )
         ),
         Rule(
+            code="CF1:3+RedPrice",
             product=product_cf1, 
             func=lambda basket_dict, product : (
                 basket_dict[product.code] * product.price * 2/3

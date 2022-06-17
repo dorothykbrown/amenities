@@ -1,4 +1,4 @@
-from amenitiz import Product, Rule, CashRegister, UnknownItemsInBasketError
+from amenitiz import CannotAddModelInstanceWithExistingCodesError, Product, Rule, CashRegister, UnknownItemsInBasketError, UnknownModelInstanceError
 import unittest
 import math
 
@@ -18,12 +18,14 @@ class TestCashRegister(unittest.TestCase):
 
         self.rule_list = [
             Rule(
+                code="GR1:Buy1Get1",
                 product=product_gr1, 
                 func=lambda basket_dict, product : math.ceil(
                     basket_dict[product.code]/2
                 ) * product.price
             ),
             Rule(
+                code="SR1:3+RedPrice",
                 product=product_sr1, 
                 func=lambda basket_dict, product : (
                     basket_dict[product.code] * 4.50
@@ -32,6 +34,7 @@ class TestCashRegister(unittest.TestCase):
                 )
             ),
             Rule(
+                code="CF1:3+RedPrice",
                 product=product_cf1, 
                 func=lambda basket_dict, product : (
                     basket_dict[product.code] * product.price * 2/3
@@ -113,7 +116,7 @@ class TestCashRegister(unittest.TestCase):
             "Actual product2 price is not as expected"
         )
 
-    def test_get_product_from_cash_register(self):
+    def test_get_product_from_cash_register_success(self):
 
         green_tea_product = self.cr1.get_product("GR1")
         
@@ -131,12 +134,35 @@ class TestCashRegister(unittest.TestCase):
             "green_tea_product retrieved is not as expected"
         )
 
+    def test_get_product_from_cash_register_error(self):
+        with self.assertRaises(
+            UnknownModelInstanceError,
+            msg=str(
+                UnknownModelInstanceError(model=Product, code="BL1")
+            )
+        ):
+            self.cr1.get_product("BL1")
+       
+
     def test_add_product_to_cash_register(self):
-
         mango_product = Product("MG1", "Mango", 1.50)
-        
-        self.cr1.add_products([mango_product])
 
+        green_tea_product = self.cr1.get_product("GR1")
+        strawberry_product = self.cr1.get_product("SR1")
+        existing_products = [green_tea_product, strawberry_product]
+
+        existing_product_codes = [green_tea_product.code, strawberry_product.code]
+
+        products_to_add = existing_products + [mango_product]
+
+        with self.assertRaises(
+            CannotAddModelInstanceWithExistingCodesError,
+            msg=str(
+                CannotAddModelInstanceWithExistingCodesError(model=Product, codes=existing_product_codes)
+            )
+        ):
+            self.cr1.add_products(products_to_add)
+        
         product_from_cr = self.cr1.get_product(code=mango_product.code)
 
         self.assertEqual(
@@ -153,7 +179,7 @@ class TestCashRegister(unittest.TestCase):
             "mango_product retrieved is not as expected"
         )
 
-    def test_update_product_in_cash_register(self):
+    def test_update_product_in_cash_register_success(self):
 
         self.cr1.update_product(code="GR1", price=4.22)
 
@@ -164,6 +190,17 @@ class TestCashRegister(unittest.TestCase):
             4.22,
             "Actual product3 price is not as expected"
         )
+
+    def test_update_product_in_cash_register_error(self):
+
+        with self.assertRaises(
+            UnknownModelInstanceError,
+            msg=str(
+                UnknownModelInstanceError(model=Product, code="BL1")
+            )
+        ):
+            self.cr1.update_product(code="BL1", name="Blueberry")
+        
 
     def test_delete_product_from_cash_register(self):
         self.assertEqual(
