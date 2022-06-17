@@ -8,15 +8,40 @@ class Product:
         self.name = name
         self.price = price
 
+    def update(self, name=None, price=None):
+
+        if name is not None:
+            self.name = name
+
+        if price is not None:
+            self.price = price
+
+    def update_from_code(code=None, name=None, price=None):
+        if code is not None:
+            product = Product.get(code=code)
+            if product is not None:
+                self = product
+            else:
+                raise Exception("Cannot update product with unknown product code")
+
+        if name is not None:
+            self.name = name
+
+        if price is not None:
+            self.price = price
+
 class Rule:
     def __init__(self, product, func): 
         self.product = product
         self.function = func
 
+
 class UnknownItemsInBasketError(Exception):
     def __init__(self, unknown_items_list):
         self.unknown_items = unknown_items_list
         super().__init__(f"Unknown items in basket: {self.unknown_items}")
+
+
 class CashRegister:
     def __init__(self, products, rules=[]):
         self.products = products
@@ -28,8 +53,6 @@ class CashRegister:
             product.code: product
             for product in self.products
         }
-
-
 
     def calculate_total_price(self, basket_str):
         total = 0.00
@@ -65,6 +88,15 @@ class CashRegister:
         ]
         if len(unknown_items) > 0:
             raise UnknownItemsInBasketError(unknown_items)
+
+    def get_product(self):
+        pass
+
+    def update_product(self):
+        pass
+
+    def delete_product(self):
+        pass
 
 
 if __name__ == '__main__':

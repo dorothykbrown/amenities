@@ -78,6 +78,58 @@ class TestCashRegister(unittest.TestCase):
             )
         ):
             self.cr1.calculate_total_price(basket_str="OR1,PN1")
+
+    
+    def test_update_product(self):
+        product1 = Product("OR1", "Orange", "2.50")
+
+        product1.update(name="Valencia Orange")
+
+        self.assertEqual(
+            product1.name,
+            "Valencia Orange",
+            "Actual product1 name is not as expected"
+        )
+
+        self.assertEqual(
+            product1.price,
+            "2.50",
+            "Actual product1 price is not as expected"
+        )
+
+        product2 = Product("PN1", "Pineapple", "4.25")
+
+        product2.update(price="3.75")
+
+        self.assertEqual(
+            product2.name,
+            "Pineapple",
+            "Actual product2 name is not as expected"
+        )
+
+        self.assertEqual(
+            product2.price,
+            "3.75",
+            "Actual product2 price is not as expected"
+        )
+        products = Product.all()
+        print(products)
+
+        Product("MG1", "Mango", "1.50")
+        Product.update_from_code(code="MG1", price="2.75")
+
+
+        product3 = Product.get(code="MG1")
+
+        
+
+        self.assertEqual(
+            product3.price,
+            "2.75",
+            "Actual product3 price is not as expected"
+        )
+
+        
         
 
 if __name__ == '__main__':
