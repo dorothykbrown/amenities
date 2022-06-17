@@ -16,9 +16,17 @@ class Product:
 
 
 class Rule:
-    def __init__(self, product, func): 
+    def __init__(self, code, product, func): 
+        self.code = code
         self.product = product
         self.function = func
+
+    def update(self, product=None, func=None):
+        if product is not None:
+            self.product = product
+
+        if func is not None:
+            self.func = func
 
 
 class UnknownItemsInBasketError(Exception):
@@ -35,7 +43,10 @@ class CashRegister:
         }
 
         if len(rules) > 0:
-            self.rules = rules
+            self.rules_dict = {
+                rule.code: rule
+                for rule in rules
+            }
 
 
     def calculate_total_price(self, basket_str):
@@ -51,13 +62,11 @@ class CashRegister:
         for item in basket_list:
             basket_dict.setdefault(item, 0)
             basket_dict[item] += 1
-            
-
-        if len(self.rules) > 0:
-            for rule in self.rules:
-                if rule.product.code in basket_dict:
-                    total += rule.function(basket_dict, rule.product)
-                    del basket_dict[rule.product.code]
+        
+        for rule in self.rules_dict.values():
+            if rule.product.code in basket_dict:
+                total += rule.function(basket_dict, rule.product)
+                del basket_dict[rule.product.code]
 
         for item, num_items in basket_dict.items():
             total += self.products_dict[item].price * num_items
@@ -73,11 +82,11 @@ class CashRegister:
         if len(unknown_items) > 0:
             raise UnknownItemsInBasketError(unknown_items)
 
+    # Product Operations
     def get_product(self, code):
         product = self.products_dict.get(code, None)
 
         return product
-
     
     def add_products(self, products):
 
@@ -90,8 +99,9 @@ class CashRegister:
                 product_codes_to_update.append(product.code)
 
         if len(product_codes_to_update) > 0:
-            raise Exception("The products with the following codes already exist: %s", str(product_codes_to_update))
+            print("The products with the following codes already exist: %s", str(product_codes_to_update))
 
+        return
 
     def update_product(self, code, name=None, price=None):
         product = self.get_product(code)
@@ -102,6 +112,37 @@ class CashRegister:
 
     def delete_product(self, code):
         del self.products_dict[code]
+
+    # Rule Operations
+    def get_rule(self, code):
+        rule = self.rules_dict.get(code, None)
+
+        return rule
+    
+    def add_rules(self, rules):
+
+        existing_rule_codes = []
+
+        for rule in rules:
+            if rule.code not in self.rules_dict:
+                self.rules_dict[rule.code] = rule
+            else:
+                existing_rule_codes.append(rule.code)
+
+        if len(existing_rule_codes) > 0:
+            print("The rules with the following codes already exist: %s", str(existing_rule_codes))
+
+        return
+
+    def update_rule(self, code, product=None, func=None):
+        rule = self.get_rule(code)
+
+        if rule is not None:
+            rule.update(product=product, func=func)
+            print(f"Rule {rule.product} ({code}) was updated.")
+
+    def delete_rule(self, code):
+        del self.rules_dict[code]
 
 
 if __name__ == '__main__':
