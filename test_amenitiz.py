@@ -6,33 +6,38 @@ import math
 class TestCashRegister(unittest.TestCase):
 
     def setUp(self) -> None:
-        product_gr1 = Product("GR1", "Green Tea", 3.11)
-        product_sr1 = Product("SR1", "Strawberries", 5.00)
+        self.product_gr1 = Product("GR1", "Green Tea", 3.11)
+        self.product_sr1 = Product("SR1", "Strawberries", 5.00)
         product_cf1 = Product("CF1", "Coffee", 11.23)
 
         self.product_list = [
-            product_gr1,
-            product_sr1,
+            self.product_gr1,
+            self.product_sr1,
             product_cf1
         ]
 
+        self.gr1_rule_function = lambda basket_dict, product : math.ceil(
+            basket_dict[product.code]/2
+        ) * product.price
+
+        self.gr1_rule = Rule(
+            code="GR1:Buy1Get1",
+            product=self.product_gr1,
+            func=self.gr1_rule_function
+        )
+        self.sr1_rule = Rule(
+            code="SR1:3+RedPrice",
+            product=self.product_sr1, 
+            func=lambda basket_dict, product : (
+                basket_dict[product.code] * 4.50
+                if basket_dict[product.code] >= 3
+                else basket_dict[product.code] * product.price
+            )
+        )
+
         self.rule_list = [
-            Rule(
-                code="GR1:Buy1Get1",
-                product=product_gr1, 
-                func=lambda basket_dict, product : math.ceil(
-                    basket_dict[product.code]/2
-                ) * product.price
-            ),
-            Rule(
-                code="SR1:3+RedPrice",
-                product=product_sr1, 
-                func=lambda basket_dict, product : (
-                    basket_dict[product.code] * 4.50
-                    if basket_dict[product.code] >= 3
-                    else basket_dict[product.code] * product.price
-                )
-            ),
+            self.gr1_rule,
+            self.sr1_rule,
             Rule(
                 code="CF1:3+RedPrice",
                 product=product_cf1, 
@@ -135,13 +140,9 @@ class TestCashRegister(unittest.TestCase):
         )
 
     def test_get_product_from_cash_register_error(self):
-        with self.assertRaises(
-            UnknownModelInstanceError,
-            msg=str(
-                UnknownModelInstanceError(model=Product, code="BL1")
-            )
-        ):
-            self.cr1.get_product("BL1")
+        
+        product = self.cr1.get_product("BL1")
+        self.assertEqual(product, None, "Product retrieved is not as expected")
        
 
     def test_add_product_to_cash_register(self):
@@ -217,6 +218,141 @@ class TestCashRegister(unittest.TestCase):
             set(self.cr1.products_dict.keys()),
             set(["SR1","CF1"]),
             "Set of actual product codes after delete is not as expected"
+        )
+
+    def test_update_rule(self):
+        product_gp1 = Product("GP1", "Grape", 0.80)
+
+        rule1 = Rule("GP1:HalfOff", self.product_gr1, lambda basket_dict, product: (
+            basket_dict[product.code] * product.price * 0.5
+        ))
+
+        rule1.update(product=product_gp1)
+
+        self.assertEqual(
+            {
+                "code": rule1.code,
+                "product": rule1.product,
+            },
+            {
+                "code": "GP1:HalfOff",
+                "product": product_gp1,
+            },
+            "rule1 retrieved is not as expected"
+        )
+
+    def test_get_rule_from_cash_register_success(self):
+
+        green_tea_rule = self.cr1.get_rule("GR1:Buy1Get1")
+        
+        self.assertEqual(
+            {
+                "code": green_tea_rule.code,
+                "product": green_tea_rule.product,
+                "function": green_tea_rule.function
+            },
+            {
+                "code": "GR1:Buy1Get1",
+                "product": self.product_gr1,
+                "function": self.gr1_rule_function
+            },
+            "rule1 retrieved is not as expected"
+        )
+
+    def test_get_rule_from_cash_register_error(self):
+        
+        rule = self.cr1.get_rule("MG1:HalfOff")
+        self.assertEqual(rule, None, "Rule retrieved is not as expected")
+       
+
+    def test_add_rule_to_cash_register(self):
+        mango_product = Product("MG1", "Mango", 1.50)
+
+        mango_rule_function = lambda basket_dict, product: (
+            basket_dict[product.code] * product.price * 0.5
+        )
+        mango_rule = Rule("MG1:HalfOff", mango_product, mango_rule_function)
+
+        existing_rules = [self.gr1_rule, self.sr1_rule]
+
+        existing_rules_codes = [self.gr1_rule.code, self.sr1_rule.code]
+
+        rules_to_add = existing_rules + [mango_rule]
+
+        with self.assertRaises(
+            CannotAddModelInstanceWithExistingCodesError,
+            msg=str(
+                CannotAddModelInstanceWithExistingCodesError(model=Product, codes=existing_rules_codes)
+            )
+        ):
+            self.cr1.add_rules(rules_to_add)
+        
+        rule_from_cr = self.cr1.get_rule(code=mango_rule.code)
+
+        self.assertEqual(
+            {
+                "code": rule_from_cr.code,
+                "product": rule_from_cr.product,
+                "function": rule_from_cr.function
+            },
+            {
+                "code": "MG1:HalfOff",
+                "product": mango_product,
+                "function": mango_rule_function
+            },
+            "mango_rule retrieved is not as expected"
+        )
+
+    def test_update_rule_in_cash_register_success(self):
+
+        mango_product = Product("MG1", "Mango", 1.50)
+
+        self.cr1.update_rule(code="GR1:Buy1Get1", product=mango_product)
+
+        updated_rule = self.cr1.get_rule(code="GR1:Buy1Get1")
+    
+        self.assertEqual(
+            {
+                "code": updated_rule.code,
+                "product": updated_rule.product,
+            },
+            {
+                "code": "GR1:Buy1Get1",
+                "product": mango_product,
+            },
+            "updated_rule retrieved is not as expected"
+        )
+
+    def test_update_rule_in_cash_register_error(self):
+
+        updated_mango_rule_function = lambda basket_dict, product: (
+            basket_dict[product.code] * product.price * 0.5
+        )
+
+        with self.assertRaises(
+            UnknownModelInstanceError,
+            msg=str(
+                UnknownModelInstanceError(model=Rule, code="MG1:HalfOff")
+            )
+        ):
+            self.cr1.update_rule(code="MG1:HalfOff", func=updated_mango_rule_function)
+        
+
+    def test_delete_rule_from_cash_register(self):
+        self.assertEqual(
+            set(self.cr1.rules_dict.keys()),
+            set(
+                ["GR1:Buy1Get1","SR1:3+RedPrice","CF1:3+RedPrice"]
+            ),
+            "Set of rule codes before delete is not as expected"
+        )
+
+        self.cr1.delete_rule("GR1:Buy1Get1")
+
+        self.assertEqual(
+            set(self.cr1.rules_dict.keys()),
+            set(["SR1:3+RedPrice","CF1:3+RedPrice"]),
+            "Set of actual rule codes after delete is not as expected"
         )
         
 

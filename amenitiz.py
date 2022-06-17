@@ -94,16 +94,14 @@ class CashRegister:
     def get_product(self, code):
         product = self.products_dict.get(code, None)
 
-        if product is None:
-            raise UnknownModelInstanceError(model=Product, code=code)
-
         return product
     
     def add_products(self, products):
         existing_product_codes = []
 
         for product in products:
-            if product.code not in self.products_dict:
+            existing_product = self.get_product(product.code)
+            if existing_product is None:
                 self.products_dict[product.code] = product
             else:
                 existing_product_codes.append(product.code)
@@ -119,6 +117,9 @@ class CashRegister:
         if product is not None:
             product.update(name=name, price=price)
             print(f"Product {product.name} ({code}) was updated.")
+        
+        else:
+            raise UnknownModelInstanceError(model=Product, code=code)
 
     def delete_product(self, code):
         del self.products_dict[code]
@@ -134,13 +135,14 @@ class CashRegister:
         existing_rule_codes = []
 
         for rule in rules:
-            if rule.code not in self.rules_dict:
+            existing_rule = self.get_rule(rule.code)
+            if existing_rule is None:
                 self.rules_dict[rule.code] = rule
             else:
                 existing_rule_codes.append(rule.code)
 
         if len(existing_rule_codes) > 0:
-            print("The rules with the following codes already exist: %s", str(existing_rule_codes))
+            raise CannotAddModelInstanceWithExistingCodesError(model=Rule, codes=existing_rule_codes)
 
         return
 
@@ -150,6 +152,9 @@ class CashRegister:
         if rule is not None:
             rule.update(product=product, func=func)
             print(f"Rule {rule.product} ({code}) was updated.")
+
+        else:
+            raise UnknownModelInstanceError(model=Rule, code=code)
 
     def delete_rule(self, code):
         del self.rules_dict[code]
