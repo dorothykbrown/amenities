@@ -29,16 +29,14 @@ class UnknownItemsInBasketError(Exception):
 
 class CashRegister:
     def __init__(self, products, rules=[]):
-        self.products = products
+        self.products_dict = {
+            product.code: product
+            for product in products
+        }
 
         if len(rules) > 0:
             self.rules = rules
 
-    def product_price_dict(self):
-        return {
-            product.code: product
-            for product in self.products
-        }
 
     def calculate_total_price(self, basket_str):
         total = 0.00
@@ -62,7 +60,7 @@ class CashRegister:
                     del basket_dict[rule.product.code]
 
         for item, num_items in basket_dict.items():
-            total += self.product_price_dict()[item].price * num_items
+            total += self.products_dict[item].price * num_items
 
         return round(total, 2)
 
@@ -70,17 +68,15 @@ class CashRegister:
         unknown_items = [
             item
             for item in basket
-            if item not in self.product_price_dict()
+            if item not in self.products_dict
         ]
         if len(unknown_items) > 0:
             raise UnknownItemsInBasketError(unknown_items)
 
     def get_product(self, code):
-        for product in self.products:
-            if product.code == code:
-                return product
+        product = self.products_dict.get(code, None)
 
-        return None
+        return product
 
     
     def add_products(self, products):
@@ -88,8 +84,8 @@ class CashRegister:
         product_codes_to_update = []
 
         for product in products:
-            if product.code not in self.product_price_dict():
-                self.products.append(product)
+            if product.code not in self.products_dict:
+                self.products_dict[product.code] = product
             else:
                 product_codes_to_update.append(product.code)
 
@@ -105,7 +101,7 @@ class CashRegister:
             print(f"Product {product.name} ({code}) was updated.")
 
     def delete_product(self, code):
-        pass
+        del self.products_dict[code]
 
 
 if __name__ == '__main__':
@@ -146,7 +142,7 @@ if __name__ == '__main__':
     ]
 
     cr1 = CashRegister(products=product_list, rules=rule_list)
-    print(cr1.product_price_dict())
+    print(cr1.products_dict)
     
     basket_list_str = input("Enter a list of products in basket: ")
     

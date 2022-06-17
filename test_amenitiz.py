@@ -164,6 +164,23 @@ class TestCashRegister(unittest.TestCase):
             4.22,
             "Actual product3 price is not as expected"
         )
+
+    def test_delete_product_from_cash_register(self):
+        self.assertEqual(
+            set(self.cr1.products_dict.keys()),
+            set(
+                ["GR1","SR1","CF1"]
+            ),
+            "Set of product codes before delete is not as expected"
+        )
+
+        self.cr1.delete_product("GR1")
+
+        self.assertEqual(
+            set(self.cr1.products_dict.keys()),
+            set(["SR1","CF1"]),
+            "Set of actual product codes after delete is not as expected"
+        )
         
 
 if __name__ == '__main__':
