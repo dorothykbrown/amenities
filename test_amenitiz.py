@@ -81,7 +81,7 @@ class TestCashRegister(unittest.TestCase):
 
     
     def test_update_product(self):
-        product1 = Product("OR1", "Orange", "2.50")
+        product1 = Product("OR1", "Orange", 2.50)
 
         product1.update(name="Valencia Orange")
 
@@ -93,13 +93,13 @@ class TestCashRegister(unittest.TestCase):
 
         self.assertEqual(
             product1.price,
-            "2.50",
+            2.50,
             "Actual product1 price is not as expected"
         )
 
-        product2 = Product("PN1", "Pineapple", "4.25")
+        product2 = Product("PN1", "Pineapple", 4.25)
 
-        product2.update(price="3.75")
+        product2.update(price=3.75)
 
         self.assertEqual(
             product2.name,
@@ -109,27 +109,61 @@ class TestCashRegister(unittest.TestCase):
 
         self.assertEqual(
             product2.price,
-            "3.75",
+            3.75,
             "Actual product2 price is not as expected"
         )
-        products = Product.all()
-        print(products)
 
-        Product("MG1", "Mango", "1.50")
-        Product.update_from_code(code="MG1", price="2.75")
+    def test_get_product_from_cash_register(self):
 
-
-        product3 = Product.get(code="MG1")
-
+        green_tea_product = self.cr1.get_product("GR1")
         
-
         self.assertEqual(
-            product3.price,
-            "2.75",
-            "Actual product3 price is not as expected"
+            {
+                "code": green_tea_product.code,
+                "name": green_tea_product.name,
+                "price": green_tea_product.price
+            },
+            {
+                "code": "GR1",
+                "name": "Green Tea",
+                "price": 3.11
+            },
+            "green_tea_product retrieved is not as expected"
         )
 
+    def test_add_product_to_cash_register(self):
+
+        mango_product = Product("MG1", "Mango", 1.50)
         
+        self.cr1.add_products([mango_product])
+
+        product_from_cr = self.cr1.get_product(code=mango_product.code)
+
+        self.assertEqual(
+            {
+                "code": product_from_cr.code,
+                "name": product_from_cr.name,
+                "price": product_from_cr.price
+            },
+            {
+                "code": "MG1",
+                "name": "Mango",
+                "price": 1.50
+            },
+            "mango_product retrieved is not as expected"
+        )
+
+    def test_update_product_in_cash_register(self):
+
+        self.cr1.update_product(code="GR1", price=4.22)
+
+        product3 = self.cr1.get_product(code="GR1")
+    
+        self.assertEqual(
+            product3.price,
+            4.22,
+            "Actual product3 price is not as expected"
+        )
         
 
 if __name__ == '__main__':

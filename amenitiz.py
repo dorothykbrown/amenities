@@ -1,6 +1,4 @@
 import math
-from operator import itemgetter
-import unittest
 
 class Product:
     def __init__(self, code, name, price):
@@ -16,19 +14,6 @@ class Product:
         if price is not None:
             self.price = price
 
-    def update_from_code(code=None, name=None, price=None):
-        if code is not None:
-            product = Product.get(code=code)
-            if product is not None:
-                self = product
-            else:
-                raise Exception("Cannot update product with unknown product code")
-
-        if name is not None:
-            self.name = name
-
-        if price is not None:
-            self.price = price
 
 class Rule:
     def __init__(self, product, func): 
@@ -49,7 +34,8 @@ class CashRegister:
         if len(rules) > 0:
             self.rules = rules
 
-        self.product_price_list = {
+    def product_price_dict(self):
+        return {
             product.code: product
             for product in self.products
         }
@@ -76,7 +62,7 @@ class CashRegister:
                     del basket_dict[rule.product.code]
 
         for item, num_items in basket_dict.items():
-            total += self.product_price_list[item].price * num_items
+            total += self.product_price_dict()[item].price * num_items
 
         return round(total, 2)
 
@@ -84,18 +70,41 @@ class CashRegister:
         unknown_items = [
             item
             for item in basket
-            if item not in self.product_price_list 
+            if item not in self.product_price_dict()
         ]
         if len(unknown_items) > 0:
             raise UnknownItemsInBasketError(unknown_items)
 
-    def get_product(self):
-        pass
+    def get_product(self, code):
+        for product in self.products:
+            if product.code == code:
+                return product
 
-    def update_product(self):
-        pass
+        return None
 
-    def delete_product(self):
+    
+    def add_products(self, products):
+
+        product_codes_to_update = []
+
+        for product in products:
+            if product.code not in self.product_price_dict():
+                self.products.append(product)
+            else:
+                product_codes_to_update.append(product.code)
+
+        if len(product_codes_to_update) > 0:
+            raise Exception("The products with the following codes already exist: %s", str(product_codes_to_update))
+
+
+    def update_product(self, code, name=None, price=None):
+        product = self.get_product(code)
+
+        if product is not None:
+            product.update(name=name, price=price)
+            print(f"Product {product.name} ({code}) was updated.")
+
+    def delete_product(self, code):
         pass
 
 
@@ -137,70 +146,9 @@ if __name__ == '__main__':
     ]
 
     cr1 = CashRegister(products=product_list, rules=rule_list)
-    print(cr1.product_price_list)
+    print(cr1.product_price_dict())
     
     basket_list_str = input("Enter a list of products in basket: ")
     
     basket_price = cr1.calculate_total_price(basket=basket_list_str)
     print("Total basket price (in Euros): ", basket_price)
-
-
-class TestCashRegister(unittest.TestCase):
-
-    def test_cash_register_success(self):
-
-        product_gr1 = Product("GR1", "Green Tea", 3.11)
-        product_sr1 = Product("SR1", "Strawberries", 5.00)
-        product_cf1 = Product("CF1", "Coffee", 11.23)
-
-        product_list = [
-            product_gr1,
-            product_sr1,
-            product_cf1
-        ]
-
-        rule_list = [
-            Rule(
-                product=product_gr1, 
-                func=lambda basket_dict, product : math.ceil(
-                    basket_dict[product.code]/2
-                ) * product.price
-            ),
-            Rule(
-                product=product_sr1, 
-                func=lambda basket_dict, product : (
-                    basket_dict[product.code] * 4.50
-                    if basket_dict[product.code] >= 3
-                    else basket_dict[product.code] * product.price
-                )
-            ),
-            Rule(
-                product=product_cf1, 
-                func=lambda basket_dict, product : (
-                    basket_dict[product.code] * product.price * 2/3
-                    if basket_dict[product.code] >= 3
-                    else basket_dict[product.code] * product.price
-                )
-            ),
-        ]
-
-        mcb = CashRegister(products=product_list, rules=rule_list)
-        mcb.calculate_total_price(basket=basket_list)
-
-        baskets = [
-            "GR1,GR1",
-            "SR1,SR1,GR1,SR1",
-            "GR1,CF1,SR1,CF1,CF1"
-        ]
-
-        actual_calculated_total_prices = []
-        for basket in baskets:
-            basket_list = basket.split(",")
-            actual_calculated_total_prices.append(mcb.calculate_total_price(basket_list))
-
-        self.assertEqual(
-            actual_calculated_total_prices,
-            [3.11, 16.61, 30.57],
-            "Actual calculated total prices are not as expected"
-        )
-
